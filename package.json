@@ -1,0 +1,50 @@
+{
+  "name": "spcmd",
+  "version": "1.0.0",
+  "description": "sharepoint shell cmd",
+  "homepage": "",
+  "author": "Benamar BELARBI <benamarbelarbi@yahoo.fr>",
+  "contributors": [
+    {
+      "name": "benamar BELARBI",
+      "email": "benamarbelarbi@yahoo.fr",
+      "web": ""
+    }
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/benamar/spcmd.git"
+  },
+  "preferGlobal": true,
+  "bin": {
+    "spcmd": "./bin/spcmd.js"
+  },
+  "scripts": {
+    "preuninstall": "node --harmony bin/spcmd.js logout --silent"
+  },
+  "dependencies": {
+    "colors": "^1.1.2",
+    "concat-stream": "^1.5.1",
+    "deasync": "^0.1.9",
+    "getmac": "^1.0.7",
+    "istextorbinary": "^1.0.2",
+    "minimist": "^1.2.0",
+    "read": "^1.0.7",
+    "request": "^2.69.0",
+    "sharepoint-auth": "git://github.com/timegrip/sharepoint-auth#v1.0.5",
+    "sp-request": "^2.0.3",
+    "spsave": "^3.0.2",
+    "xml2js": "^0.4.16"
+  },
+  "keywords": [
+    "sharepoint",
+    "office",
+    "file",
+    "shell",
+    "download",
+    "upload",
+    "auth",
+    "command"
+  ]
+}
