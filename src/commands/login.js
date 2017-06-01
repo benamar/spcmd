@@ -28,14 +28,14 @@ module.exports = class Login extends Command {
 function loginCheck(context) {
 
   return new Promise((resolve, reject) => {
-
-    Storage.restore(context.url).then(data => {
-      if (data || gcontext.authenticating) {
+    return Storage.restore(context.url).then(data => {
+      if (data || context.authenticating) {
+        console.log('user logged in.');
         !gcontext.authenticating && !context.silent && console.log('Already logged in.');
         resolve(data);
         return;
       }
-      gcontext.authenticating = true;
+      context.authenticating = true;
       let _credentials = {};
       if (!context.username.startsWith('XXXX')) {
         _credentials.username = context.username;
@@ -56,7 +56,6 @@ function loginCheck(context) {
   });
 }
 
-let gcontext;
 
 function login(context) {
   //console.log('---login------- context=', context);
@@ -66,11 +65,11 @@ function login(context) {
   return new Promise((resolve, reject) => {
     return Storage.restore(url).then(data => {
         if (data) {
-          //console.log('Already logged in. return data');
+          console.log('login check: user logged in.');
           resolve(data);
           return data;
         } else {
-          console.log('Not logged.');
+          console.log('login check: not logged.');
           let _credentials = {}
           if (context.credentials.username && !context.credentials.username.startsWith('XXXX')) {
             _credentials.username = context.username;
@@ -91,7 +90,6 @@ function login(context) {
 
 
           };
-
 
           return (!context.credentials.username || !context.credentials.password ) ?
             query_credentials(context.credentials).then(credentials =>
@@ -115,8 +113,6 @@ function auth(serverUrl, credentials) {
     return Promise.resolve('Missing username or password.');
   }
 
-  //spr.create(credentials);
-  //const serverUrl = Parser.getUrl(gcontext && gcontext.args || '');
 
   return spauth.getAuth(serverUrl, credentials)
     .then(function (options) {
