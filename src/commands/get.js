@@ -12,7 +12,7 @@ const
   spsave = require("spsave").spsave,
 
   Command = require( './command' ),
-  Login   = require( `./login`   ),
+  Login   = require( `./login`   );
   const URL = require('url').URL;
 
 module.exports = class GetFile extends Command {
