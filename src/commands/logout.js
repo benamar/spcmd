@@ -12,7 +12,7 @@ module.exports = class Logout extends Command {
 
 function logout ( context ) {
   return Cookie.clear().then( cleared => {
-    ! context.silent && console.log(
+    ! context.silent && console.error(
       cleared ? 'Logged out.' : 'Already logged out.'
     );
   });
