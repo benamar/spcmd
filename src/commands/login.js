@@ -60,11 +60,11 @@ function loginCheck(context) {
 
 function login(context) {
   //console.log('---login------- context=', context.options);
-  const url = context.options.url;
+  const url = context.options.args.hostSiteUrl;
   //console.log('login enter context ', context);
   //console.log('login enter url', url);
   return new Promise((resolve, reject) => {
-    return Storage.restore(url).then(data => {
+     Storage.restore(url).then(data => {
         if (data) {
           console.error('login check: user logged in.');
           resolve(data);
