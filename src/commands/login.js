@@ -60,7 +60,7 @@ function loginCheck(context) {
 
 function login(context) {
   //console.log('---login------- context=', context.options);
-  const url = context.options.args.hostSiteUrl;
+  const url = context.options.args && context.options.args.hostSiteUrl || context.options.hostSiteUrl;
   //console.log('login enter context ', context);
   //console.log('login enter url', url);
   return new Promise((resolve, reject) => {
