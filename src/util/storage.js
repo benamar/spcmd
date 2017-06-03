@@ -25,8 +25,8 @@ module.exports = class Storage {
     return restore();
   }
 
-  static save ( url, data) {
-    return save( url, data );
+  static save ( url, payload) {
+    return save( url, payload );
   }
 
   static clear () {
@@ -41,16 +41,16 @@ function restore () {
         return resolve();
       }
       decrypt( data ).then(
-        decrypted => resolve( {data:decrypted} )
+        data => resolve( {data} )
       ).catch( () => resolve() );
     })
   );
 }
 
 
-function save ( url, data ) {
-  data = { url : url, data};
-  return encrypt( data ).then( encrypted => new Promise( resolve =>
+function save ( key, data ) {
+  //data = { url : url, data};
+  return encrypt( Object.assign({key},data) ).then( encrypted => new Promise( resolve =>
     fs.mkdir( storage_path, () =>
       fs.writeFile( cookie_file_path, encrypted, err =>
         resolve( err ? undefined : {data })

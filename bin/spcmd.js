@@ -1,10 +1,15 @@
 #!/usr/bin/env node --harmony
 
 'use strict';
-
-const Program = require('commander');
+let Program;
+try {
+  Program = require('commander');
+}catch(e){
+  console.log(e);
+  console.log("module missing, please type npm install!")
+}
 const Package = require('../package');
-
+const colors = require('colors');
 process.on('uncaughtException', function (err) {
   console.log(err);
 })
@@ -13,7 +18,7 @@ Program
   .version(`${Package.name}/v${Package.version}`)
   .option('-u, --username [user name]', 'office365 account user name or user email')
   .option('-p, --password [user password]', 'office365 account password')
-  .option('-h, --hostUrl [host site url]', 'host site url');
+  .option('-s, --siteHostUrl [host site url]', 'override site host url');
 
 const isArg = (a) => ['commands', 'parent', 'options', 'Command', 'Option', 'rawArgs', 'args']
   .filter(k => k == a).length === 0 && !a.startsWith('_');
@@ -26,9 +31,11 @@ const addArgKeys = (obj, m = {}) => {
 const getOptions = (args, o) => (addArgKeys(o, {
   name: o._name,
   args: args,
-  username: o.parent.username,
-  url: o.parent.hostUrl,
-  password: o.parent.password,
+  credentials: {
+    username: o.parent.username || args.username,
+    password: o.parent.password || args.password,
+    url: o.parent.hostUrl || args.hostSiteUrl,
+  },
   silent: o.parent.silent,
   help: o.parent.help,
   version: o.parent.version,
@@ -39,42 +46,50 @@ const execCmd = (nameArgs, options) => {
   const opts = getOptions(nameArgs, options);
   let Command = require(`../src/commands/${options._name}`);
   new Command(opts).run(opts).then(() => process.exit(0)).catch(
-    () => process.exit(1)
+    (reason) => console.error('error',reason)||process.exit(1)
   );
 }
 
 Program
-  .command('login <hostSiteUrl> -u username -p password')
+  .command('login [hostSiteUrl] [username] [password]')
   //.command('get [options] <shareFile> <localFilePath>')
-  .description(` get a file and shows its content or saves it`)
-  .action(function (hostSiteUrl, options) {
-    execCmd({ hostSiteUrl }, options);
+  .description('login with hostSiteUrl and credentials'.green+',\n\t\t\t\t\t\t any missing information from command line wil be prompted'.green)
+  .action(function (hostSiteUrl, username, password, options) {
+    execCmd({ hostSiteUrl , username, password}, options);
   });
 
 Program
   .command('logout')
   //.command('get [options] <shareFile> <localFilePath>')
-  .description(` get a file and shows its content or saves it`)
+  .description(`logout`.green)
   .action(function (options) {
     execCmd({}, options);
   });
 
 Program
+  .command('ls [remoteFolder]')
+  .description(`list files in remoteFolder`.green)
+  .action(function (remoteFolder, options) {
+    execCmd({ remoteFolder }, options);
+  });
+
+Program
   .command('get <remoteFile> [localFile]')
-  .description(` get a file and shows its content or saves it`)
+  .description(` get a file and shows its content or saves it`.green)
   .action(function (remoteFile, localFile, options) {
     execCmd({ remoteFile, localFile }, options);
   });
+
 Program
   .command('rm <remoteFile>')
-  .description(` remove a file`)
+  .description(` remove a file`.green)
   .action(function (remoteFile, options) {
     execCmd({ remoteFile }, options);
   });
 
 Program
   .command('put <localFile> [remoteFolder] ')
-  .description(` put a file on sharepoint server`)
+  .description(` put a file on sharepoint server`.green)
   .action(function (localFile, remoteFolder, options) {
     execCmd({ localFile, remoteFolder }, options);
   });
@@ -89,6 +104,11 @@ Program
   });
 
 Program.parse(process.argv);
+if(process.argv.length<3)
+{
+  console.log('missing command');
+  Program.help();
+}
 /*
  if ( ! cmd ) return;
 

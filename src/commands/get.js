@@ -21,7 +21,7 @@ module.exports = class GetFile extends Command {
     return new Login( this ).run({
       silent      : true,
       credentials : this.credentials
-    }).then( jar => get( this, jar ) );
+    }).then( stored => get( this, stored.data ) );
   }
 }
 
@@ -33,7 +33,12 @@ function get ( context, storedData ) {
     }else {
       //console.log(context',context);
     }
-    const url=context.options.hostUrl||storedData.data.data.url;
+    console.log('storedData=',storedData);
+    console.log('context.options',context.options);
+    const url=context.options.siteHostUrl||storedData && storedData.url;
+    //console.log('storedData=',storedData.data);
+
+    url||reject('undefined host site url, option -h ');
     const    urlParser            = new URL(url);
     const fileRestUrl = url + '/_api/web/GetFileByServerRelativeUrl(@FileUrl)/$value' +
       ("?@FileUrl='" + encodeURIComponent(`${urlParser.pathname}Documents partages/${context.args.remoteFile}`) + "'");
@@ -42,7 +47,7 @@ function get ( context, storedData ) {
       method:'get',
       url : fileRestUrl,
       headers : {
-        Cookie : storedData.data.data.data
+        Cookie : storedData.cookie
       }
     }).on( 'error', err => {
       console.error('get error');

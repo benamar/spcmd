@@ -8,8 +8,13 @@ const
   CacheItem_1 = require('node-sp-auth/lib/src/utils/CacheItem'),
 
   Command = require('./command'),
-  Storage = require('../util/storage')
-  ;
+  Storage = require('../util/storage'),
+  colors  = require('colors');
+  const query = (read_opts) =>
+  new Promise((resolve, reject) =>
+    read(read_opts, (err, result) => err ? reject() : resolve(result))
+  );
+
 var current_url ;
 module.exports = class Login extends Command {
   run(opts) {
@@ -29,29 +34,29 @@ module.exports = class Login extends Command {
 function loginCheck(context) {
 
   return new Promise((resolve, reject) => {
-    return Storage.restore(context.url).then(data => {
-      if (data || context.authenticating) {
-        console.error('user logged in.');
-        !gcontext.authenticating && !context.silent && console.error('Already logged in.');
-        resolve(data);
+    return Storage.restore(context.url).then(storedData => {
+      if (storedData || context.authenticating) {
+        //console.error('user logged in.');
+        //!context.authenticating && context.options && context.options.name=='login' && console.error('Already logged in.(to change user logout first)');
+        resolve(storedData);
         return;
       }
       context.authenticating = true;
-      let _credentials = {};
+      let _credentials = {url:context.url};
       if (!context.username.startsWith('XXXX')) {
         _credentials.username = context.username;
       }
-      query_credentials(_credentials).then(credentials => {
-          return auth(context.url, credentials).then(result => {
+
+      return query_credentials(_credentials).then(credentials =>
+        auth(context.url, credentials).then(result => {
             if (result) {
-              !context.silent && console.error('Logged in.');
+              //!context.silent && console.error('Logged in.');
               resolve(result);
             } else {
               console.error('could not log in!');
-              reject('error from auth')
+              reject('auth error : could not log in');
             }
           })
-        }
       );
     });
   });
@@ -59,40 +64,41 @@ function loginCheck(context) {
 
 
 function login(context) {
-  //console.log('---login------- context=', context.options);
-  const url = context.options.args && context.options.args.hostSiteUrl || context.options.hostSiteUrl;
-  //console.log('login enter context ', context);
-  //console.log('login enter url', url);
+  const url = context.credentials.url;// || context.options.args && context.options.args.hostSiteUrl || context.options.hostSiteUrl;
   return new Promise((resolve, reject) => {
-     Storage.restore(url).then(data => {
-        if (data) {
-          console.error('login check: user logged in.');
-          resolve(data);
-          return data;
+     return Storage.restore(url).then(storedData => {
+        if (storedData) {
+          //console.error('login check: user logged in.');
+          if(context.options.name=='login')
+          {
+            console.error('Already logged in'.magenta.bold);
+            console.error('Please log out if you intends to change user'.gray);
+            console.error('Note that you can change temporally the host with option -s'.gray);
+          }
+          resolve(storedData);
+          return storedData;
         } else {
-          console.error('login check: not logged.');
-          let _credentials = {}
+          console.error('login check: not logged.'.red.bold);
+          let _credentials = {url:url||storedData && storedData.data.url}
           if (context.credentials.username && !context.credentials.username.startsWith('XXXX')) {
             _credentials.username = context.username;
           }
 
           const authenticate = (credentials) => {
-            console.error('authenticating on url ',url,'with credentials', credentials.username, '***');
-            current_url = url;
-            return auth(url, credentials).then(result => {
-              //console.log('auth returned Logged in with',result);
+            console.error('authenticating to url '.blue.bold,credentials.url,'for user'.green, credentials.username, '***');
+            return auth(credentials.url, credentials).then(result => {
               if (result && result.headers) {
                 !context.silent && console.error('Logged in');
-                resolve(result);
+                return Storage.restore(url).then(resolve)
               } else {
-                console.error(result);
-                reject('error from auth')
+                //console.error('Error occured'.red.bold,result);
+                reject('server authentication problem')
               }
             });
 
 
           };
-
+          //console.error('*authenticating on url ',url);
           return (!context.credentials.username || !context.credentials.password ) ?
             query_credentials(context.credentials).then(credentials =>
               authenticate(credentials)
@@ -109,40 +115,45 @@ function login(context) {
 }
 
 function auth(serverUrl, credentials) {
-  //console.log('called auth: serverUrl ', serverUrl, 'credentials', credentials);
 
   if (!credentials.username.length || !credentials.password.length) {
     return Promise.resolve('Missing username or password.');
   }
-
 
   return spauth.getAuth(serverUrl, credentials)
     .then(function (options) {
       return options;
     })
     .catch(function (e) {
-      console.error('authentication error');
+      console.error('authentication error'.red,e);
       new Error('getAuth failure', e)
     });
   //return Promise.resolve('OK');
+}
+function queryHost(url){
+  !url && console.error('sharepoint host url site never defined'.gray);
+  return Promise.resolve(url ? url : query({
+    prompt: 'host site url :'.cyan.bold
+  }));
 }
 
 function query_credentials(credentials = {}) {
   ( !credentials.username || !credentials.password )
   && console.error('Please enter your Sharepoint credentials'.gray);
-  let query = (read_opts) =>
-    new Promise((resolve, reject) =>
-      read(read_opts, (err, result) => err ? reject() : resolve(result))
-    );
-  return Promise.resolve(credentials.username ? credentials.username : query({
-    prompt: 'Email address :'.cyan.bold
+  return queryHost(credentials.url).then(url =>
+    (current_url = url) &&
+    Promise.resolve(credentials.username ? credentials.username : query({
+    prompt: 'login (Email address) :'.cyan.bold
   })).then(username =>
     Promise.resolve(credentials.password ? credentials.password : query({
       prompt: `Password ${credentials.username ? '' : '     '}:`.cyan.bold,
       silent: true,
       replace: '*'
     }))
-      .then(password => ({ username: username, password: password })));
+      .then(password => ({ username, password ,url})
+      )
+    )
+  );
 }
 
 
@@ -163,13 +174,11 @@ function createCacheItem(data, expiration) {
 }
 
 Cache.Cache.prototype.get = function (key) {
-  //console.log('ok*************', key);
   const keyHash = this.getHashKey(key);
   var cacheItem = this._cache[key];
   let storedValue = false;
   let done = false;
   Storage.restore(keyHash).then(storeResult => {
-    //console.log('Storage.restore res=', storeResult)
     storedValue = storeResult && storeResult.data;
     if (!storedValue || !storedValue.data) {
       const username = key.split('@').reverse()[0];
@@ -184,10 +193,8 @@ Cache.Cache.prototype.get = function (key) {
     done = true;
   });
   require('deasync').loopWhile(() => !done);
- //console.log('storedValue', storedValue);
   if (storedValue && storedValue.data)
-     //console.log('storedValue.data.expiration',storedValue.data.expiration,'storedValue.data.data', storedValue.data.data);
-    cacheItem = createCacheItem(storedValue.data.data, storedValue.data.expiration);
+    cacheItem = createCacheItem(storedValue.data.cookie, storedValue.data.expiration);
   if (!cacheItem) {
     return undefined;
   }
@@ -204,17 +211,12 @@ Cache.Cache.prototype.get = function (key) {
   }
 };
 
-Cache.Cache.prototype.set = function (url, data, expiration) {
-  var cacheItem = undefined;
-  //console.log(`---> set cache  data='${data}'`);
-  // console.log(`---> set cache expiration='${expiration}'`);
-  console.error('set cache for url',url);
+Cache.Cache.prototype.set = function (url, cookie, expiration) {
   const key = this.getHashKey(url);
-  cacheItem = createCacheItem(data, expiration);
+  let cacheItem = createCacheItem(cookie, expiration);
   this._cache[key] = cacheItem;
   let done = false;
-  Storage.save(key, { data, expiration ,url:current_url}).then(saveddata => {
-    //console.log('credentials saved saveddata', saveddata);
+  Storage.save(key, { cookie, expiration ,url:current_url}).then(saveddata => {
     done = true;
   });
   require('deasync').loopWhile(() => !done);

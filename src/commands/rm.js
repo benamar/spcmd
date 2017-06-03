@@ -28,7 +28,7 @@ module.exports = class GetFile extends Command {
 function checkInOut ( check,context, storedData ) {
   try {
     return new Promise((resolve, reject) => {
-      const url = context.options.hostUrl || storedData.data.data.url;
+      const url = context.options.hostUrl || storedData.data.url;
       const urlParser = new URL(url);
       const checkinMessage = 'checkin';
       const fileServerRelativeUrl = `${urlParser.pathname}Documents partages/${context.args.remoteFile}`;
@@ -49,7 +49,7 @@ function checkInOut ( check,context, storedData ) {
         method: 'post',
         url: fileRestUrls[check],
         headers: {
-          Cookie: storedData.data.data.data,
+          Cookie: storedData.data.cookie,
         }
       }).on('error', err => {
         console.error('get error');
@@ -95,7 +95,7 @@ function rm ( context, storedData ) {
       } else {
         //console.log(context',context);
       }
-      const url = context.options.hostUrl || storedData.data.data.url;
+      const url = context.options.hostUrl || storedData.data.url;
       const urlParser = new URL(url);
       const fileRestUrl = url + '/_api/web/GetFileByServerRelativeUrl(@FileUrl)/$value' +
         ("?@FileUrl='" + encodeURIComponent(`${urlParser.pathname}Documents partages/${context.args.remoteFile}`) + "'");
@@ -109,7 +109,7 @@ function rm ( context, storedData ) {
         method: 'post',
         url: fileRestUrl,
         headers: {
-          Cookie: storedData.data.data.data,
+          Cookie: storedData.data.cookie,
           "X-HTTP-Method": "DELETE",
           //"X-FORMS_BASED_AUTH_ACCEPTED":"f"
         }
