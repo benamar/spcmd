@@ -13,7 +13,7 @@ const
 
   Command = require( './command' ),
   Login   = require( `./login`   );
-  const URL = require('url').URL;
+  const Url = require('url');
 
 module.exports = class GetFile extends Command {
   run (opts) {
@@ -31,14 +31,15 @@ function ls ( context, storedData ) {
       console.error('has no stored data, not logged in!')
       return resolve();
     }
-    const url=context.options.siteHostUrl||storedData && storedData.url;
-    url||reject('undefined host site url, option -h ');
-    const    urlParser            = new URL(url);
-    let remoteFolder=context.args.remoteFolder||"";
+    //const url=context.options.siteHostUrl||storedData && storedData.url;
+    //url||reject('undefined host site url, option -h ');
+    //const urlParser            = new URL(url);
+    const url=Url.resolve(storedData.hostBaseUrl,storedData.relative_urlSite);
+    let   remoteFolder=context.args.remoteFolder||"";
     //fileType : Files or Folders
     remoteFolder = remoteFolder.startsWith('/')?remoteFolder.slice(1):remoteFolder;
     const restUrl = (fileType) => url + '/_api/web/GetFolderByServerRelativeUrl(@FolderUrl)/'+fileType +
-      ("?@FolderUrl='" + encodeURIComponent(`${urlParser.pathname}Documents partages/${remoteFolder}`) + "'");
+      ("?@FolderUrl='" + encodeURIComponent(`${storedData.relative_urlSite}Documents partages/${remoteFolder}`) + "'");
     const onError=(err)=>err => {
       console.error( `list error ${err.host} ${err.code}`);
       reject( err );
@@ -55,8 +56,8 @@ function ls ( context, storedData ) {
       infoList.length==0 && console.log('empty folder or does not exist')
       infoList.map(inf=>
         typeof inf.ItemCount != 'undefined' ?
-          console.log(`${inf.Name}/  (${inf.ItemCount}) ${inf.TimeLastModified}`)   :
-          console.log(`${inf.Name} ${inf.Length}  ${inf.TimeLastModified}`)
+          console.log(`${inf.Name}/ `.blue.bold+` (${inf.ItemCount}) ${inf.TimeLastModified}`)   :
+          console.log(`${inf.Name} `.green.bold+`${inf.Length}  ${inf.TimeLastModified}`)
       )
     };
     request(Object.assign({url:restUrl('Folders')},reqParams)).on( 'error', onError(reject))
@@ -66,6 +67,7 @@ function ls ( context, storedData ) {
     const next=()=>
     request(Object.assign({url:restUrl('Files')},reqParams)).on( 'error', onError(reject))
       .on( 'response', response => {
+        console.log('listing url : '.yellow,`${storedData.hostBaseUrl+storedData.relative_urlSite+remoteFolder}`.grey,'\n');
         displayResponse(infoList,response,reject,dislayFiles);
       });
 

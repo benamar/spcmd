@@ -5,13 +5,17 @@ let Program;
 try {
   Program = require('commander');
 }catch(e){
-  console.log(e);
-  console.log("module missing, please type npm install!")
+  console.log("module missing,please type");
+  console.log("npm install");
+  console.log("npm needs nodejs to be installed, you know :)");
+  process.exit(1)
 }
 const Package = require('../package');
 const colors = require('colors');
+const Url   = require( 'url' );
+
 process.on('uncaughtException', function (err) {
-  console.log(err);
+  console.error(err);
 })
 
 Program
@@ -28,22 +32,65 @@ const addArgKeys = (obj, m = {}) => {
   Object.keys(obj.parent).filter(isArg).map(k => m[k] = obj.parent[k]);
   return m;
 };
+const relativeUrlPath=(_url)=> {
+  const r = new Url.URL(_url);
+  return r.pathname;
+};
+
+const origineBaseUrl=(_url)=> {
+  const r = new Url.URL(_url);
+  return r.origin;
+};
+
+const credentials=(o,args)=> {
+  let siteHostUrl = o.parent.siteHostUrl;
+
+  let hostBaseUrl = args.loginUrl;
+  let relative_urlSite;
+
+  if (hostBaseUrl) {
+    const urlSite = relativeUrlPath(hostBaseUrl);
+    if (!siteHostUrl) {
+      relative_urlSite = urlSite;
+      hostBaseUrl = origineBaseUrl(hostBaseUrl);
+    } else {
+      if (urlSite.startsWith('/sites') || urlSite.startsWith('sites'))
+      {
+        console.error("Warning : host url should not have a relative path if relative site is provides".yellow.bold)
+      }
+    }
+
+  }
+  if(siteHostUrl)
+  {
+    if(siteHostUrl.startsWith('http')){
+      //override hostBaseUrl
+      hostBaseUrl = origineBaseUrl(siteHostUrl);
+      relative_urlSite = relativeUrlPath(siteHostUrl);
+    }else {
+      relative_urlSite = siteHostUrl;
+    }
+  }
+  const creds = {
+    username: o.parent.username || args.username,
+    password: o.parent.password || args.password,
+    hostBaseUrl,
+    relative_urlSite
+  }
+  return creds;
+}
 const getOptions = (args, o) => (addArgKeys(o, {
   name: o._name,
   args: args,
-  credentials: {
-    username: o.parent.username || args.username,
-    password: o.parent.password || args.password,
-    url: o.parent.hostUrl || args.hostSiteUrl,
-  },
+  credentials: credentials(o,args),
   silent: o.parent.silent,
   help: o.parent.help,
   version: o.parent.version,
   o: JSON.stringify(o._args)
 }));
 
-const execCmd = (nameArgs, options) => {
-  const opts = getOptions(nameArgs, options);
+const execCmd = (namedArgs, options) => {
+  const opts = getOptions(namedArgs, options);
   let Command = require(`../src/commands/${options._name}`);
   new Command(opts).run(opts).then(() => process.exit(0)).catch(
     (reason) => console.error('error',reason)||process.exit(1)
@@ -51,17 +98,25 @@ const execCmd = (nameArgs, options) => {
 }
 
 Program
-  .command('login [hostSiteUrl] [username] [password]')
+  .command('login [url] [username] [password]')
   //.command('get [options] <shareFile> <localFilePath>')
   .description('login with hostSiteUrl and credentials'.green+',\n\t\t\t\t\t\t any missing information from command line wil be prompted'.green)
-  .action(function (hostSiteUrl, username, password, options) {
-    execCmd({ hostSiteUrl , username, password}, options);
+  .action(function (loginUrl, username, password, options) {
+    execCmd({ loginUrl, username, password}, options);
   });
 
 Program
   .command('logout')
   //.command('get [options] <shareFile> <localFilePath>')
   .description(`logout`.green)
+  .action(function (options) {
+    execCmd({}, options);
+  });
+
+Program
+  .command('pwd')
+  //.command('get [options] <shareFile> <localFilePath>')
+  .description(`show current host and site`.green)
   .action(function (options) {
     execCmd({}, options);
   });

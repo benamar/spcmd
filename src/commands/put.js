@@ -10,7 +10,7 @@ const
 
   Command = require( './command' ),
   Login   = require( `./login`   );
-  //const URL = require('url').URL;
+  const Url = require('url');
 
 module.exports = class GetFile extends Command {
   run (opts) {
@@ -32,7 +32,8 @@ function put ( context, storedData ) {
         //console.error('storedData url',storedData.url);
       }
       //const urlParser = new URL(context.options.hostUrl);
-      const url=context.options.siteHostUrl||storedData && storedData.url;
+      console.log('context.options',context.options);
+      const url=Url.resolve(storedData.hostBaseUrl,context.options.credentials.relative_urlSite || storedData.relative_urlSite );
       const
         folder = context.args.remoteFolder;
 
@@ -50,8 +51,6 @@ function put ( context, storedData ) {
         folder: `Documents partages/${folder || ''}`,
         glob: context.args.localFile,
       };
-      //console.error('fileOptions:', fileOptions);
-      //console.error('coreOptions:', coreOptions);
 
       const creds = {
         username: context.credentials.username || "XXXXYYYY",

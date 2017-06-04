@@ -13,7 +13,7 @@ const
 
   Command = require( './command' ),
   Login   = require( `./login`   );
-  const URL = require('url').URL;
+  const Url = require('url');
 
 module.exports = class GetFile extends Command {
   run (opts) {
@@ -33,16 +33,10 @@ function get ( context, storedData ) {
     }else {
       //console.log(context',context);
     }
-    console.log('storedData=',storedData);
-    console.log('context.options',context.options);
-    const url=context.options.siteHostUrl||storedData && storedData.url;
-    //console.log('storedData=',storedData.data);
+    const url=Url.resolve(storedData.hostBaseUrl,storedData.relative_urlSite);
 
-    url||reject('undefined host site url, option -h ');
-    const    urlParser            = new URL(url);
     const fileRestUrl = url + '/_api/web/GetFileByServerRelativeUrl(@FileUrl)/$value' +
-      ("?@FileUrl='" + encodeURIComponent(`${urlParser.pathname}Documents partages/${context.args.remoteFile}`) + "'");
-    //console.log( 'get fileRestUrl :',fileRestUrl);
+      ("?@FileUrl='" + encodeURIComponent(`${storedData.relative_urlSite}Documents partages/${context.args.remoteFile}`) + "'");
     request({
       method:'get',
       url : fileRestUrl,
