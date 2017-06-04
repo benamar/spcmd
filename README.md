@@ -22,31 +22,72 @@ $ **spcmd** task args
 **Available tasks:** 
     (use --help for more info)
     
-    login [options] <HOSTURL> 
-         Authenticates with Sharepoint explicitly 
-         <HOSTURL> The Sharepoint host URL 
-          [-u]  User credentials as emailaddress:password 
+    login -[options] [hostSiteUrl] [username] [password]  
+            login with hostSiteUrl and credentials,
+            any missing information from command line wil be prompted
 
-           Example: ocmd login https://your.sharepoint.com 
+           Example: 
+                    > spcmd login https://your.sharepoint.com/sites/myTeamsite me@mail.com password
+                    > spcmd login https://your.sharepoint.com me@mail.com password -s /sites/myTeamsite
+                    > spcmd logout
+                    > spcmd login https://your.sharepoint.com me@mail.com
+                      enter password:
+                    > spcmd logout
+                    > spcmd login
+                      enter host/site :
+                      
+    logout
+        clear all login credentials and host information, 
+        after this, the next command will prompt you for login
+    
+    pwd
+        show current host and site
+        
+    ls -[options] [remoteFolder] 
+        list files in remoteFolder
+        [-s]  host site url : override current site url
+        [-u]  User login as emailaddress (if not already logged)
+        [-p]  User password (if not already logged)
+        
+        example > spcmd ls
+                folder1/  (3) 2017-06-03T18:25:01Z
+                Forms/  (0) 2017-05-04T02:52:51Z
+                test.js 628  2017-05-05T09:52:16Z
+                file.txt 11  2017-05-18T12:48:15Z
+               > spcmd ls folder1
+                test/  (1) 2017-06-03T18:25:05Z
+                package.json 1125  2017-06-02T13:41:39Z
+                new.txt 19  2017-05-21T19:03:35Z
 
-     get [options] <FILEURL> 
-          [filepath] ... get a file and saves its content 
-          <FILEURL>  The full Sharepoint URL path 
-          [-u]  User credentials as emailaddress:password 
+    get -[options] <remoteFile> [localFile]
+        get a file and shows its content or saves it
+          [-s]  host site url : override current site url
+          [-u]  User login as emailaddress (if not already logged)
+          [-p]  User password (if not already logged)
 
-          Example: spcmd get https://your.sharepoint.com/sites/mysite/bar.pdf foo.pdf
+          Example: > spcmd get foo.pdf d:/tmp/localfoo.pdf
+                    # write the remote file foo.pdf to your local drive
+                   > spcmd get readme.txt
+                      this is my readme.txt content
+                 
+                    > spcmd get readme.txt -s /sites/mysite2
+                        hello, this is another readme.txt content 
+                    
 
-      put [options] <FILEURL> [filepath] 
-          upload a file to Sharepoint
-            <FILEURL>  The full Sharepoint URL to the file
-            [filepath] File name or file path to upload
-            [remotefolder] folder name to upload to
-            [-u]  User credentials as emailaddress:password
-
-            Example: ocmd get https://your.sharepoint.com/path/bar.pdf bar.pdf
-
-     logout
-           Invalidates your Sharepoint session explicitly
+      put <localFile|localFolder> [remoteFolder]      
+        upload a file or directory content to sharepoint server
+          remoteFolder will be created if not exist
+          if local folder is provided, the same folder tree is created on remoteFolder
+          
+          [-s]  host site url : override current site url
+          [-u]  User login as emailaddress (if not already logged)
+          [-p]  User password (if not already logged)
+          
+            Example: 
+                      > spcmd put d:/tmp/localfoo.pdf 
+                      > spcmd put d:/tmp/localfoo.pdf remoteFolder
+                      > spcmd put d:/tmp/localfoo.pdf -s /sites/anotherTeamSite
+                      > spcmd put d:/mydir remoteFolder2 -s /sites/anotherTeamSite
 
 **Options:**
 
