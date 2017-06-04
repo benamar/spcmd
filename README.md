@@ -3,6 +3,7 @@ cmd file
 A command-line utility for sharepoint file operations
 
 **information** 
+  
   download of individual files from and online Sharepoint site / file storage.
   upload of individual files or folder tree from  file storage to online Sharepoint site .
   list remote folders
