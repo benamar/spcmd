@@ -3,9 +3,11 @@ cmd file
 A command-line utility for sharepoint file operations
 
 **information** 
-  Currently supports download/upload of individual files from and online Sharepoint site / file storage.
-  incoming: list remote folders, upload folders
-  this is based on s-kainet node-sp-auth module and  Zarko Hristovski utility
+  download of individual files from and online Sharepoint site / file storage.
+  upload of individual files or folder tree from  file storage to online Sharepoint site .
+  list remote folders
+  incoming: remove file, public api 
+  thanks to s-kainet node-sp-auth module and Zarko Hristovski work
 
 Installation or update
 ----------------------
