@@ -24,7 +24,7 @@ $ **spcmd** task args
     
     login -[options] [hostSiteUrl] [username] [password]  
             login with hostSiteUrl and credentials,
-            any missing information from command line wil be prompted
+            if missing information are detected user will be promted from command line to complete
 
            Example: 
                     > spcmd login https://your.sharepoint.com/sites/myTeamsite me@mail.com password
@@ -88,7 +88,10 @@ $ **spcmd** task args
                       > spcmd put d:/tmp/localfoo.pdf remoteFolder
                       > spcmd put d:/tmp/localfoo.pdf -s /sites/anotherTeamSite
                       > spcmd put d:/mydir remoteFolder2 -s /sites/anotherTeamSite
-
+        
+        rm
+          not yet available
+          
 **Options:**
 
     --silent ............................... Suppresses most console output
