@@ -36,7 +36,9 @@
     "sharepoint-auth": "git://github.com/timegrip/sharepoint-auth#v1.0.5",
     "sp-request": "^2.0.3",
     "spsave": "^3.0.2",
+    "upath": "^1.0.0",
     "url": "^0.11.0",
+    "url-join": "^2.0.2",
     "xml2js": "^0.4.16"
   },
   "keywords": [

@@ -1,74 +1,58 @@
 'use strict';
 
 const
-  fs = require( 'fs' ),
-
-  xml2js          = require( 'xml2js'         ),
-  concat          = require( 'concat-stream'  ),
-  request         = require( 'request'        ),
+  urljoin = require('url-join'),
   spsave = require("spsave").spsave,
 
-  Command = require( './command' ),
-  Login   = require( `./login`   );
-  const Url = require('url');
+  Login = require(`./login`);
 
-module.exports = class GetFile extends Command {
-  run (opts) {
-    this.options = opts;
-    return new Login( this ).run({
-      silent      : true,
-      credentials : this.credentials
-    }).then( stored => put( this, stored.data ) );
-  }
-}
+async function put(options, storedData) {
+  try {
+    let { siteHostUrl,credentials:{  username, password,sharedDocuments }, args:{ remoteFolder, localFile } } = options;
+    const { hostBaseUrl } = storedData;
+    if (!storedData) {
+      console.error('has no stored data, not logged in!')
+      return resolve();
+    } else {
+      //console.error('storedData url',storedData.url);
+    }
+    !options.silent && console.error(`Uploading file`, localFile, ' to folder', remoteFolder, '...');
 
-function put ( context, storedData ) {
-  return new Promise( ( resolve, reject ) => {
-    try {
-      if (!storedData) {
-        console.error('has no stored data, not logged in!')
-        return resolve();
-      }else{
-        //console.error('storedData url',storedData.url);
-      }
-      //const urlParser = new URL(context.options.hostUrl);
-      console.log('context.options',context.options);
-      const url=Url.resolve(storedData.hostBaseUrl,context.options.credentials.relative_urlSite || storedData.relative_urlSite );
-      const
-        folder = context.args.remoteFolder;
+    username = username || "XXXXYYYY";
+    password = password || "XXXXYYZZ";
 
-      !context.silent && console.error(`Uploading file`, context.args.localFile, ' to folder', folder, '...');
-      var spsave = require("spsave").spsave;
-      var coreOptions = {
-        siteUrl: url,
+    let sharedDocs = typeof sharedDocuments === 'string'?sharedDocuments:storedData.sharedDocuments;
+    let relative_urlSite = siteHostUrl||storedData.relative_urlSite;
+    remoteFolder = remoteFolder || "";
+    const urlFolder = urljoin(sharedDocs,remoteFolder).replace(/^[/]+/g,'/');
+    const siteUrl=urljoin(hostBaseUrl, relative_urlSite );
+    /*
+    console.log('relative_urlSite',relative_urlSite);
+    console.log('storedData.relative_urlSite',storedData.relative_urlSite);
+    console.log('siteUrl',siteUrl);
+    console.log('urlFolder',urlFolder);
+    */
+    return await spsave(
+      {
+        siteUrl,
         notification: true,
         checkin: true,
         checkinType: 1
-      };
+      },
+      { username, password },
+      {
+        folder: urlFolder,
+        glob: options.args.localFile,
+      }
+    );
 
-      //getFileByUrl
-      var fileOptions = {
-        folder: `Documents partages/${folder || ''}`,
-        glob: context.args.localFile,
-      };
+  } catch
+    (e) {
+    console.error(e.message)
+  }
+  ;
 
-      const creds = {
-        username: context.credentials.username || "XXXXYYYY",
-        password: context.credentials.password || "XXXXYYZZ"
-      };
 
-      return spsave(coreOptions, creds, fileOptions)
-        .then(function () {
-          //console.error('saved');
-          resolve();
-        })
-        .catch(function (err) {
-          console.error(err);
-          resolve();
-        });
-
-    }catch(e){console.error(e)};
-
-  });
 }
 
+module.exports = put;

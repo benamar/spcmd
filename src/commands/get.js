@@ -8,6 +8,7 @@ const
   request         = require( 'request'        ),
   sprequest       = require('sp-request'      ),
   istextorbinary  = require( 'istextorbinary' ),
+  urljoin = require('url-join'),
   FileSaver_1 = require("spsave/lib/src/core/FileSaver"),
   spsave = require("spsave").spsave,
 
@@ -15,17 +16,9 @@ const
   Login   = require( `./login`   );
   const Url = require('url');
 
-module.exports = class GetFile extends Command {
-  run (opts) {
-    this.options = opts;
-    return new Login( this ).run({
-      silent      : true,
-      credentials : this.credentials
-    }).then( stored => get( this, stored.data ) );
-  }
-}
 
-function get ( context, storedData ) {
+function get ( context ) {
+  const {storedData,args,siteHostUrl,sharedDocuments,jsonFormat} = context;
   return new Promise( ( resolve, reject ) => {
     if ( ! storedData ) {
       console.error('has no stored data, not logged in!')
@@ -33,10 +26,19 @@ function get ( context, storedData ) {
     }else {
       //console.log(context',context);
     }
-    const url=Url.resolve(storedData.hostBaseUrl,storedData.relative_urlSite);
 
-    const fileRestUrl = url + '/_api/web/GetFileByServerRelativeUrl(@FileUrl)/$value' +
-      ("?@FileUrl='" + encodeURIComponent(`${storedData.relative_urlSite}Documents partages/${context.args.remoteFile}`) + "'");
+    let sharedDocs = typeof sharedDocuments === 'string'?sharedDocuments:storedData.sharedDocuments;
+    const relative_urlSite = siteHostUrl||storedData.relative_urlSite;
+
+    const url = urljoin(storedData.hostBaseUrl, relative_urlSite).replace(/[/]+$/g,'');
+    let remoteFile = args.remoteFile || "";
+    const urlFile = urljoin(urljoin(relative_urlSite,sharedDocs),remoteFile).replace(/^[/]+/g,'/');
+
+    const fileRestUrl = url + '/_api/web/GetFileByServerRelativeUrl(@FileUrl)/$value'  +
+    ("?@FileUrl='" + encodeURIComponent(urlFile) + "'");
+
+
+
     request({
       method:'get',
       url : fileRestUrl,
@@ -106,3 +108,6 @@ function parse_request_error ( response ) {
     }));
   });
 }
+
+
+module.exports = get;

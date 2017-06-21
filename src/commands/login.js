@@ -5,9 +5,9 @@ const
   read = require('read'),
   spauth = require('node-sp-auth'),
   Cache = require('node-sp-auth/lib/src/utils/Cache'),
+  urljoin = require('url-join'),
   CacheItem_1 = require('node-sp-auth/lib/src/utils/CacheItem'),
 
-  Command = require('./command'),
   Storage = require('../util/storage'),
   colors = require('colors'),
   Url = require('url');
@@ -17,27 +17,13 @@ const query = (read_opts) =>
     read(read_opts, (err, result) => err ? reject() : resolve(result))
   );
 
-let global_creds;
 
-module.exports = class Login extends Command {
-  run(opts) {
-    opts = opts || {};
-    this.options = opts;
-    if (opts.silent !== undefined) {
-      this.silent = opts.silent;
-    }
-    if (opts.credentials !== undefined) {
-      this.credentials = opts.credentials;
-    }
-
-    return login(this);
-  }
-}
 
 function loginCheck(context) {
-
+  console.log('login check','======='.blue)
   return new Promise((resolve, reject) => {
-    return Storage.restore(context.url).then(storedData => {
+    return Storage.restore(global.creds.sessionKey).then(storedData => {
+      console.log('login find data','2======='.blue)
       if (storedData || context.authenticating) {
         //console.error('user logged in.');
         //!context.authenticating && context.options && context.options.name=='login' && console.error('Already logged in.(to change user logout first)');
@@ -64,69 +50,71 @@ function loginCheck(context) {
   });
 }
 
-
-function login(context) {
+const checkAlreadyLogged=false;
+async function login(context) {
   const creds = context.credentials;// || context.options.args && context.options.args.hostSiteUrl || context.options.hostSiteUrl;
-  return new Promise((resolve, reject) => {
-    return Storage.restore().then(storedData => {
-        if (storedData) {
-          //console.error('login check: user logged in. storedData',storedData);
-          if (context.options.name == 'login') {
-            console.error('Already logged in'.magenta.bold);
-            console.error('Please log out if you intends to change user'.gray);
-            console.error('Note that you can change temporally the host with option -s'.gray);
-          }
-          resolve(storedData);
-          return storedData;
-        } else {
-          console.error('login check: not logged.'.red.bold);
-
-          let _credentials = {
-              hostBaseUrl: creds.hostBaseUrl || storedData && storedData.data.hostBaseUrl,
-              relative_urlSite: creds.relative_urlSite || storedData && storedData.data.relative_urlSite
-        }
-          if (context.credentials.username && !context.credentials.username.startsWith('XXXX')) {
-            _credentials.username = context.username;
-          }
-
-          const authenticate = (credentials) => {
-            //console.error('authenticating to url '.blue.bold, credentials.url, 'for user'.green, credentials.username, '***');
-            return auth(credentials).then(result => {
-              if (result && result.headers) {
-                !context.silent && console.error('Logged in');
-                return Storage.restore().then(resolve)
-              } else {
-                //console.error('Error occured'.red.bold,result);
-                reject('server authentication problem')
-              }
-            });
-
-
-          };
-          //console.error('*authenticating on url ',url);
-
-          return (!context.credentials.username || !context.credentials.password ) ?
-            query_credentials(context.credentials).then(credentials =>
-              authenticate(credentials)
-            )
-            : authenticate(context.credentials);
-
-
-        }
-
+  if(checkAlreadyLogged) {
+    const storedData = await Storage.restore(global.creds.sessionKey);
+    if (storedData) {
+      //console.error('login check: user logged in. storedData',storedData);
+      if (context.options && context.options.name == 'login') {
+        console.error('Already logged in'.magenta.bold);
+        console.error('Please log out if you intends to change user'.gray);
+        console.error('Note that you can change temporally the host with option -s'.gray);
       }
-    );
-  })
+      return storedData;
+    }
+  }
+  console.error('login check: not logged.'.red.bold);
+
+  let _credentials = {
+    hostBaseUrl: creds.hostBaseUrl || storedData && storedData.data.hostBaseUrl,
+    relative_urlSite: creds.relative_urlSite || storedData && storedData.data.relative_urlSite,
+    sharedDocuments: creds.sharedDocuments || storedData && storedData.data.sharedDocuments
+  }
+  if (context.credentials.username && !context.credentials.username.startsWith('XXXX')) {
+    _credentials.username = context.username;
+  }
+
+  async function authenticate(credentials) {
+    //console.error('authenticating to url '.blue.bold, credentials.url, 'for user'.green, credentials.username, '***');
+    const result = await auth(credentials);
+    if (result && result.headers) {
+      !context.silent && console.error('Logged in');
+      return await Storage.restore(global.creds.sessionKey);
+    } else {
+      //console.error('Error occured'.red.bold,result);
+      return ('server authentication problem')
+    }
+  }
+
+  let credentials = context.credentials;
+  if (!credentials.username || !credentials.password) {
+    credentials = await query_credentials(credentials);
+  }
+
+  const result = await auth(credentials);
+  if (result && result.headers) {
+    !context.silent && console.error('Logged in');
+    //credentials = await Storage.restore();
+  } else {
+    //console.error('Error occured'.red.bold,result);
+    return ('server authentication problem')
+  }
 
 }
 
+
 function auth(credentials) {
-  if (!credentials.username.length || !credentials.password.length) {
+  if (!credentials || !credentials.username || !credentials.username.length || !credentials.password || !credentials.password.length) {
+    console.log("Error trying to connect with credentials", credentials);
     return Promise.resolve('Missing username or password.');
   }
-  global_creds = credentials;
+  global.creds = credentials;
 
-  const serverUrl = Url.resolve(credentials.hostBaseUrl, credentials.relative_urlSite);
+  const serverUrl = urljoin(credentials.hostBaseUrl, credentials.relative_urlSite);
+  //const serverUrl = Url.resolve(credentials.hostBaseUrl, credentials.relative_urlSite);
+  console.log('credentials',credentials,'serverUrl',serverUrl);
   return spauth.getAuth(serverUrl, credentials)
     .then(function (options) {
       return options;
@@ -195,7 +183,7 @@ Cache.Cache.prototype.get = function (key) {
   var cacheItem = this._cache[key];
   let storedValue = false;
   let done = false;
-  Storage.restore(keyHash).then(storeResult => {
+  Storage.restore(global.creds.sessionKey).then(storeResult => {
     storedValue = storeResult && storeResult.data;
     if (!storedValue || !storedValue.data) {
       const username = key.split('@').reverse()[0];
@@ -233,14 +221,18 @@ Cache.Cache.prototype.set = function (url, cookie, expiration) {
   let cacheItem = createCacheItem(cookie, expiration);
   this._cache[key] = cacheItem;
   let done = false;
-  Storage.save(key, { cookie, expiration,
-    username: global_creds.username,
-    hostBaseUrl: global_creds.hostBaseUrl,
-    relative_urlSite:global_creds.relative_urlSite,
-
-}).
-  then(saveddata => {
+  Storage.save(global.creds.sessionKey, {
+    cookie, expiration,
+    username: global.creds.username,
+    hostBaseUrl: global.creds.hostBaseUrl,
+    relative_urlSite: global.creds.relative_urlSite,
+    sharedDocuments: global.creds.sharedDocuments,
+    sessionKey: global.creds.sessionKey,
+  }).then(saveddata => {
     done = true;
   });
   require('deasync').loopWhile(() => !done);
 };
+
+
+module.exports = login;

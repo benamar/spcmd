@@ -1,165 +1,205 @@
 'use strict';
 
 const
-  fs = require( 'fs' ),
+  fs = require('fs'),
 
-  xml2js          = require( 'xml2js'         ),
-  concat          = require( 'concat-stream'  ),
-  request         = require( 'request'        ),
-  sprequest       = require('sp-request'      ),
-  istextorbinary  = require( 'istextorbinary' ),
+  xml2js = require('xml2js'),
+  concat = require('concat-stream'),
+  Path = require('path'),
+  urljoin = require('url-join'),
+  request = require('request'),
+  rp = require('request-promise'),
+  sprequest = require('sp-request'),
+  istextorbinary = require('istextorbinary'),
   FileSaver_1 = require("spsave/lib/src/core/FileSaver"),
   spsave = require("spsave").spsave,
 
-  Command = require( './command' ),
-  Login   = require( `./login`   );
-  const URL = require('url').URL;
+  Command = require('./command'),
+  Login = require(`./login`);
+const Url = require('url');
 
-module.exports = class GetFile extends Command {
-  run (opts) {
-    this.options = opts;
-    return new Login( this ).run({
-      silent      : true,
-      credentials : this.credentials
-    }).then( jar => rm( this, jar ) );
-  }
-}
-
-function checkInOut ( check,context, storedData ) {
-  try {
-    return new Promise((resolve, reject) => {
-      const url = context.options.hostUrl || storedData.data.url;
-      const urlParser = new URL(url);
-      const checkinMessage = 'checkin';
-      const fileServerRelativeUrl = `${urlParser.pathname}Documents partages/${context.args.remoteFile}`;
-      const fileRestUrl = url + '/_api/web/GetFileByServerRelativeUrl(@FileUrl)/$value' +
-        ("?@FileUrl='" + encodeURIComponent(fileServerRelativeUrl) + "'");
-
-      const fileRestUrls = {
-        checkout: this.coreOptions.siteUrl + '/_api/web/GetFileByServerRelativeUrl(@FileUrl)/CheckOut()' +
-        ("?@FileUrl='" + encodeURIComponent(fileServerRelativeUrl) + "'"),
-
-        checkin: this.coreOptions.siteUrl +
-        '/_api/web/GetFileByServerRelativeUrl(@FileUrl)/CheckIn(comment=@Comment,checkintype=@Type)' +
-        ("?@FileUrl='" + encodeURIComponent(fileServerRelativeUrl) + "'&@Comment='" + (checkinMessage) + "'") +
-        ("&@Type='" + this.coreOptions.checkinType + "'")
-      }
-      console.log('url',fileRestUrls[check]);
-      request({
-        method: 'post',
-        url: fileRestUrls[check],
-        headers: {
-          Cookie: storedData.data.cookie,
-        }
-      }).on('error', err => {
-        console.error('get error');
-        console.error(`${err.host} ${err.code}`.red.bold);
-        reject(err);
-      })
-        .on('response', response => {
-          //console.log("resp received");
-          if (response.statusCode !== 200) {
-            parse_request_error(response).then(msg => {
-              console.error(msg.red.bold);
-              if (response.statusCode === 403) {
-                // FIXME: re-login if access denied
-                console.error("access denied : (one cause can be session expired)")
-              }
-              reject(msg);
-            });
-            return;
-          }
-          console.log(check, fileRestUrl, 'ok');
-          response.pipe(concat(buffer =>
-            istextorbinary.isText(undefined, buffer, (err, is_text) => {
-              console.error(err || is_text
-                ? buffer.toString()
-                : 'Not going to show a binary file. Run the command to save it as a file.'
-              );
-              resolve();
-            })
-          ));
-
-        });
-
-    });
-  }catch(e){console.log(e)}
-
-}
-function rm ( context, storedData ) {
-  return checkInOut('checkin',context, storedData ).then(check=> {
-    return new Promise((resolve, reject) => {
-      if (!storedData) {
-        console.error('has no stored data, not logged in!')
-        return resolve();
-      } else {
-        //console.log(context',context);
-      }
-      const url = context.options.hostUrl || storedData.data.url;
-      const urlParser = new URL(url);
-      const fileRestUrl = url + '/_api/web/GetFileByServerRelativeUrl(@FileUrl)/$value' +
-        ("?@FileUrl='" + encodeURIComponent(`${urlParser.pathname}Documents partages/${context.args.remoteFile}`) + "'");
-      //console.log( 'get fileRestUrl :',fileRestUrl);
-      /*
-       url: `${url}/_api/SP.AppContextSite(@target)/web
-       /getfilebyserverrelativeurl('/Shared Documents/filename.docx')
-       ?@target='${context.args.remoteFile}'`,
-       */
-      request({
-        method: 'post',
-        url: fileRestUrl,
-        headers: {
-          Cookie: storedData.data.cookie,
-          "X-HTTP-Method": "DELETE",
-          //"X-FORMS_BASED_AUTH_ACCEPTED":"f"
-        }
-      }).on('error', err => {
-        console.error('get error');
-        console.error(`${err.host} ${err.code}`.red.bold);
-        reject(err);
-      })
-        .on('response', response => {
-          //console.log("resp received");
-          if (response.statusCode !== 200) {
-            parse_request_error(response).then(msg => {
-              console.error(msg.red.bold);
-              if (response.statusCode === 403) {
-                // FIXME: re-login if access denied
-                console.error("access denied : (one cause can be session expired)")
-              }
-              reject(msg);
-            });
-            return;
-          }
-          console.log("server response ok :", fileRestUrl);
-          checkInOut('checkout',context, storedData );
-          response.pipe(concat(buffer =>
-            istextorbinary.isText(undefined, buffer, (err, is_text) => {
-              console.error(err || is_text
-                ? buffer.toString()
-                : 'Not going to show a binary file. Run the command to save it as a file.'
-              );
-              resolve();
-            })
-          ));
-
-        });
-
-    });
-  });
-}
-
-function parse_request_error ( response ) {
-  let default_msg = 'Could not download file.';
-  return new Promise( resolve => {
-    if ( ! response.headers[ 'content-type' ].includes( 'application/xml' ) ) {
-      return resolve( default_msg );
+const sharedDocs = 'Shared Documents';
+//const sharedDocs = 'Documents partages';
+async function rm(context, storedData) {
+  let _this = {
+    coreOptions: {
+      checkinMessage: 'msg checkin',
+      checkinType:2
     }
-    response.pipe( concat( buffer => {
-      xml2js.parseString(
-        buffer.toString(), { explicitArray : false }, ( err, result ) =>
-          resolve( err ? default_msg : result[ 'm:error' ][ 'm:message' ]._ )
-      );
-    }));
-  });
+  };
+  let { args:{ remoteFile } } = context;
+  let { hostBaseUrl, relative_urlSite, cookie } = storedData;
+  let digest;
+  const reqParams = (url, method = 'get', digest) =>
+    ( {
+      method,
+      url,
+      headers: {
+        Cookie: cookie,
+        accept: "application/json;odata=verbose",
+        'X-RequestDigest':digest ?  digest  : undefined
+      }
+    });
+
+  try {
+
+    if (!storedData) {
+      console.error('has no stored data, not logged in!')
+      return 'you must logged In';
+    }
+    const siteUrl =urljoin(hostBaseUrl, relative_urlSite);
+    //var fileServerRelativeUrl = this.path + "/" + this.file.folder + "/" + this.file.fileName;
+    const fileServerRelativeUrl = `${storedData.relative_urlSite}Documents partages/${remoteFile}`;
+    _this.fileName = Path.basename(remoteFile);
+    _this.folder = Path.dirname(remoteFile);
+
+    _this.uploadFileRestUrl = siteUrl +
+      '/_api/web/GetFolderByServerRelativeUrl(@FolderName)/Files/add(url=@FileName,overwrite=true)' +
+      ("?@FolderName='" + encodeURIComponent(_this.folder) + "'&@FileName='" + encodeURIComponent(_this.fileName) + "'");
+    _this.getFileRestUrl = siteUrl + '/_api/web/GetFileByServerRelativeUrl(@FileUrl)' +
+      ("?@FileUrl='" + encodeURIComponent(fileServerRelativeUrl) + "'");
+
+    //_this.deleteFileRestUrl = siteUrl + '/_api/web/GetFileByServerRelativeUrl(@FileUrl)/delete()' +
+     // ("?@FileUrl='" + encodeURIComponent(fileServerRelativeUrl) + "'");
+    _this.deleteFileRestUrl = siteUrl + '/_api/web/GetFileByServerRelativeUrl(@FileUrl)' +
+      ("?@FileUrl='" + encodeURIComponent(fileServerRelativeUrl) + "'");
+
+    //_this.deleteFileRestUrl = siteUrl + "/_api/web/getfilebyserverrelativeurl('" + fileServerRelativeUrl+ "')";
+
+    _this.checkoutFileRestUrl = siteUrl + '/_api/web/GetFileByServerRelativeUrl(@FileUrl)/CheckOut()' +
+      ("?@FileUrl='" + encodeURIComponent(fileServerRelativeUrl) + "'");
+
+    _this.checkinFileRestUrl = siteUrl +
+      '/_api/web/GetFileByServerRelativeUrl(@FileUrl)/CheckIn(comment=@Comment,checkintype=@Type)' +
+      ("?@FileUrl='" + encodeURIComponent(fileServerRelativeUrl) + "'&@Comment='" + (_this.coreOptions.checkinMessage) + "'") +
+      ("&@Type='" + _this.coreOptions.checkinType + "'");
+
+    _this.updateMetaDataRestUrl = siteUrl + '/_api/web/GetFileByServerRelativeUrl(@FileUrl)/ListItemAllFields' +
+      ("?@FileUrl='" + encodeURIComponent(fileServerRelativeUrl) + "'");
+
+
+  } catch (e) {
+    console.log(e);
+    return e;
+  }
+
+  async function getFileByUrl() {
+    //return _this.sprequest.get(_this.getFileRestUrl);
+    try {
+      console.log('calling getFileRestUrl', _this.getFileRestUrl);
+
+      let response = await rp(reqParams(_this.getFileRestUrl));
+      //console.log("resp=", response);
+      const jsonResp = JSON.parse(response);
+      return jsonResp;
+    } catch (e) {
+      console.log(e);
+      return e;
+    }
+    return null;
+  };
+
+  async function deleteFileByUrl() {
+    //return _this.sprequest.get(_this.deleteFileRestUrl);
+    try {
+      console.log('calling deleteFileRestUrl', _this.deleteFileRestUrl);
+      let p = reqParams(_this.deleteFileRestUrl, 'delete', digest);
+      p.headers["X-HTTP-Method"]= "DELETE";
+
+      console.log('parameters with digest',digest, p);
+      let response = await rp(p);
+      //console.log("resp=", response);
+      const jsonResp = JSON.parse(response);
+      console.log("resp received resp.d=", jsonResp.d);
+      return jsonResp;
+    } catch (e) {
+      console.log(e);
+      return e;
+    }
+    return null;
+  };
+
+  async function requestDigest() {
+    try {
+      if (digest) {
+        return digest;
+      } else {
+        console.log("request digest".orange);
+        const textResponse = await rp(reqParams(hostBaseUrl + "/_api/contextinfo",'post'));
+        if (textResponse) {
+          const response = JSON.parse(textResponse);
+          digest = response.d.GetContextWebInformation.FormDigestValue;
+          var timeout = parseInt(response.d.GetContextWebInformation.FormDigestTimeoutSeconds, 10);
+          //exports.requestDigestCache.set(cacheKey, digest, timeout - 30);
+          return digest;
+        }
+      }
+    } catch (e) {
+      console.log(e);
+      return e;
+    }
+    return null;
+  }
+
+  async function checkoutFile() {
+    try {
+      const fileInfo = await getFileByUrl();
+      console.log("CHECKOUT CheckOutType".blue, fileInfo.d.CheckOutType);
+      const digest = await requestDigest();
+      console.log('digest', digest);
+      if(fileInfo.d.CheckOutType === 0){
+        return ;
+      }
+      const params = reqParams(_this.checkoutFileRestUrl, 'post', digest);
+      console.log('calling ', _this.checkoutFileRestUrl, 'with', params);
+      const textResponse = await rp(params);
+      console.log('textResponse', textResponse);
+      if (textResponse) {
+        const response = JSON.parse(textResponse);
+        //console.log('response', response, ' checkout OK');
+        return response;
+      }
+      console.log('checkout error', textResponse);
+    } catch (e) {
+      console.log(e);
+      return e;
+    }
+    //const digest = await requestDigest();
+    //console.log('digest',digest)
+  }
+
+  async function checkinFile() {
+    try {
+      if(!digest)
+      {
+        digest = await requestDigest();
+      }
+      console.log('calling CHECKIN checkinFileRestUrl '.blue, _this.checkinFileRestUrl);
+      const textResponse = await rp(reqParams(_this.checkinFileRestUrl, 'post', digest));
+      console.log('textResponse', textResponse);
+      if (textResponse) {
+        const response = JSON.parse(textResponse);
+        //console.log('response', response, ' checkout OK');
+        return response;
+      }
+      console.log('checkin error');
+    } catch (e) {
+      console.log(e);
+      return e;
+    }
+    //const digest = await requestDigest();
+    //console.log('digest',digest)
+  }
+
+  try {
+    await checkoutFile();
+    await deleteFileByUrl();
+    //await checkinFile();
+  } catch (e) {
+    console.log(e);
+    return e;
+  }
+
 }
+
+module.exports = rm;
