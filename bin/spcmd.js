@@ -16,7 +16,7 @@ const colors = require('colors');
 const Url = require('url');
 
 process.on('uncaughtException', function (err) {
-  console.error(err);
+  console.error('uncaught',err);
 })
 
 Program
@@ -38,7 +38,7 @@ const validateFuncs = {
 
 const validate = (k, obj) => {
   const v = validateFuncs[k] && validateFuncs[k](obj[k]) || obj[k];
-  console.log('validating '.green, k, '=', obj[k], "-->".blue, v);
+  //console.log('validating '.green, k, '=', obj[k], "-->".blue, v);
   return v;
 }
 
@@ -114,7 +114,7 @@ const execCmd = (namedArgs, options) => {
   //new Command(opts).run(opts).then(() => process.exit(0)).catch(    (reason) => console.error('error',reason)||process.exit(1)  );
   return Storage.restore(global.creds.sessionKey).then(storedData => {
     opts.storedData = storedData && storedData.data;
-    Command(opts, storedData && storedData.data).then(() => process.exit(0)).catch((reason) => console.error('error', reason) || process.exit(1));
+    Command(opts, storedData && storedData.data).then(() => process.exit(0)).catch((reason) => console.error('Error:', reason.message) || process.exit(1));
   });
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "spcmd",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "sharepoint shell cmd",
   "homepage": "",
   "author": "Benamar BELARBI <benamarbelarbi@yahoo.fr>",
@@ -8,7 +8,7 @@
     {
       "name": "benamar BELARBI",
       "email": "benamarbelarbi@yahoo.fr",
-      "web": ""
+      "web": "https://github.com/benamar/spcmd/blob/master/README.md"
     }
   ],
   "license": "MIT",

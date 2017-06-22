@@ -20,10 +20,10 @@ const query = (read_opts) =>
 
 
 function loginCheck(context) {
-  console.log('login check','======='.blue)
+  //console.log('login check','======='.blue)
   return new Promise((resolve, reject) => {
     return Storage.restore(global.creds.sessionKey).then(storedData => {
-      console.log('login find data','2======='.blue)
+      //console.log('login find data','2======='.blue)
       if (storedData || context.authenticating) {
         //console.error('user logged in.');
         //!context.authenticating && context.options && context.options.name=='login' && console.error('Already logged in.(to change user logout first)');
@@ -114,7 +114,7 @@ function auth(credentials) {
 
   const serverUrl = urljoin(credentials.hostBaseUrl, credentials.relative_urlSite);
   //const serverUrl = Url.resolve(credentials.hostBaseUrl, credentials.relative_urlSite);
-  console.log('credentials',credentials,'serverUrl',serverUrl);
+  //console.log('credentials',credentials,'serverUrl',serverUrl);
   return spauth.getAuth(serverUrl, credentials)
     .then(function (options) {
       return options;

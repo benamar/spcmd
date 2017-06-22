@@ -37,7 +37,8 @@ async function put(options, storedData) {
         siteUrl,
         notification: true,
         checkin: true,
-        checkinType: 1
+        checkinType: 1,
+        checkinMessage:'checked in by spcmd'
       },
       { username, password },
       {

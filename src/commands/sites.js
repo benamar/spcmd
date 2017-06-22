@@ -76,7 +76,7 @@ async function sites(context, storedData) {
     console.log(filesInfo);
 
   }catch(e){
-    console.log('error ',e);
+    console.log('Error :',e.message);
   }
 
 }
