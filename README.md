@@ -1,4 +1,4 @@
-cmd file
+spcmd
 ===============
 A command-line utility for sharepoint file operations
 
@@ -7,7 +7,7 @@ A command-line utility for sharepoint file operations
   download of individual files from and online Sharepoint site / file storage.
   upload of individual files or folder tree from  file storage to online Sharepoint site .
   list remote folders
-  incoming: remove file, public api 
+  remove files
   thanks to s-kainet node-sp-auth module and Zarko Hristovski work
 
 Installation or update
@@ -31,9 +31,9 @@ $ **spcmd** task args
 
            Example: 
                     > spcmd login https://your.sharepoint.com/sites/myTeamsite me@mail.com password
-                    > spcmd login https://your.sharepoint.com me@mail.com password -s /sites/myTeamsite
+                    > spcmd login https://your.sharepoint.com me@mail.com password -s /sites/myTeamsite -k sessionkey
                     > spcmd logout
-                    > spcmd login https://your.sharepoint.com me@mail.com
+                    > spcmd login https://your.sharepoint.com me@mail.com 
                       enter password:
                     > spcmd logout
                     > spcmd login
@@ -49,8 +49,6 @@ $ **spcmd** task args
     ls -[options] [remoteFolder] 
         list files in remoteFolder
         [-s]  host site url : override current site url
-        [-u]  User login as emailaddress (if not already logged)
-        [-p]  User password (if not already logged)
         
         example > spcmd ls
                 folder1/  (3) 2017-06-03T18:25:01Z
@@ -65,8 +63,6 @@ $ **spcmd** task args
     get -[options] <remoteFile> [localFile]
         get a file and shows its content or saves it
           [-s]  host site url : override current site url
-          [-u]  User login as emailaddress (if not already logged)
-          [-p]  User password (if not already logged)
 
           Example: > spcmd get foo.pdf d:/tmp/localfoo.pdf
                     # write the remote file foo.pdf to your local drive
@@ -75,16 +71,13 @@ $ **spcmd** task args
                  
                     > spcmd get readme.txt -s /sites/mysite2
                         hello, this is another readme.txt content 
-                    
 
-      put <localFile|localFolder> [remoteFolder]      
+    put <localFile|localFolder> [remoteFolder]      
         upload a file or directory content to sharepoint server
           remoteFolder will be created if not exist
           if local folder is provided, the same folder tree is created on remoteFolder
           
           [-s]  host site url : override current site url
-          [-u]  User login as emailaddress (if not already logged)
-          [-p]  User password (if not already logged)
           
             Example: 
                       > spcmd put d:/tmp/localfoo.pdf 
@@ -92,9 +85,25 @@ $ **spcmd** task args
                       > spcmd put d:/tmp/localfoo.pdf -s /sites/anotherTeamSite
                       > spcmd put d:/mydir remoteFolder2 -s /sites/anotherTeamSite
         
-        rm
-          not yet available
-          
+    rm -[options] <remoteFile> [localFile]
+        remove a file 
+          [-s]  host site url : override current site url
+
+          Example: > spcmd rm foo.pdf 
+                    # remove file foo.pdf from server
+                    > spcmd rm readme.txt -s /sites/mysite2
+                        remove /sites/mysite2/shared folders/readme.txt from server
+                        
+     -d, --sharedDocuments [shared Documents translation]
+          provide the shared document custom name or translation'
+            the default shared folder is defined the french translation 'Documents partages'
+            with -d option at login, the shared folder will be stored and used for the session
+            
+      -k, --sessionKey [key]
+            provide the session key to store to
+            you may want to use multiple session without need to logout/login again
+            
+    
 **Options:**
 
     --silent ............................... Suppresses most console output
