@@ -93,7 +93,8 @@ $ **spcmd** task args
                     # remove file foo.pdf from server
                     > spcmd rm readme.txt -s /sites/mysite2
                         remove /sites/mysite2/shared folders/readme.txt from server
-                        
+**Options:**
+
      -d, --sharedDocuments [shared Documents translation]
           provide the shared document custom name or translation'
             the default shared folder is defined the french translation 'Documents partages'
@@ -102,9 +103,7 @@ $ **spcmd** task args
       -k, --sessionKey [key]
             provide the session key to store to
             you may want to use multiple session without need to logout/login again
-            
-    
-**Options:**
+              
 
     --silent ............................... Suppresses most console output
 
