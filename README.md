@@ -3,7 +3,7 @@ spcmd
 A command-line utility for office365 sharepoint remote file operations
 
 **information** 
-  list remote server files 
+  list remote server files   
    _>spcmd ls 
   
   download of individual files from and online Sharepoint site / file storage.
