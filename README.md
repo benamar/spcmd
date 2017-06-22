@@ -1,13 +1,24 @@
 spcmd
 ===============
-A command-line utility for sharepoint file operations
+A command-line utility for office365 sharepoint remote file operations
 
 **information** 
+  list remote server files 
+   >spcmd ls
   
   download of individual files from and online Sharepoint site / file storage.
+   >spcmd get myshareFile.txt
+
   upload of individual files or folder tree from  file storage to online Sharepoint site .
-  list remote folders
+   >spcmd get newFolder/myshareFile2.txt
+
   remove files
+    >spcmd rm newFolder/myshareFile2.txt
+  
+  you will need to login first 
+  >spcmd login https://myproject.sharepoint/ login 
+  passwd:***
+  
   thanks to s-kainet node-sp-auth module and Zarko Hristovski work
 
 Installation or update
