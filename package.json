@@ -33,7 +33,7 @@
     "minimist": "^1.2.0",
     "read": "^1.0.7",
     "request": "^2.69.0",
-    "sharepoint-auth": "1.0.2",
+    "sharepoint-auth2": "1.0.5",
     "sp-request": "^2.0.3",
     "spsave": "^3.0.2",
     "upath": "^1.0.0",
