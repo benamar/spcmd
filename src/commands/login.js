@@ -1,7 +1,7 @@
 'use strict';
 
 const
-  Sharepoint = require('sharepoint-auth'),
+  Sharepoint = require('sharepoint-auth2'),
   read = require('read'),
   spauth = require('node-sp-auth'),
   Cache = require('node-sp-auth/lib/src/utils/Cache'),
