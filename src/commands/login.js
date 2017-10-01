@@ -221,7 +221,7 @@ Cache.Cache.prototype.set = function (url, cookie, expiration) {
   let cacheItem = createCacheItem(cookie, expiration);
   this._cache[key] = cacheItem;
   let done = false;
-  Storage.save(global.creds.sessionKey, {
+  Storage.save(global.creds.sessionKey , {
     cookie, expiration,
     username: global.creds.username,
     hostBaseUrl: global.creds.hostBaseUrl,

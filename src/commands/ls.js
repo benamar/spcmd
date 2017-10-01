@@ -32,7 +32,7 @@ async function ls(context) {
   const { storedData, args, siteHostUrl, sharedDocuments, jsonFormat } = context;
   try {
     if (!storedData) {
-      //console.error('has no session data, not logged in!')
+      console.trace('has no session data, not logged in!')
       throw new Error('has no session data, not logged in!');
     }
 

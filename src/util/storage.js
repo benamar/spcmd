@@ -34,9 +34,11 @@ module.exports = class Storage {
   }
 }
 
-function restore (key) {
+function restore (key='defaultSessionKey') {
+  let path = cookie_file_path.replace('$session',key);
+  console.log('storage_path',path);
   return new Promise( resolve =>
-    fs.readFile( cookie_file_path.replace('$session',key), 'utf8', ( err, data ) => {
+    fs.readFile( path, 'utf8', ( err, data ) => {
       if ( err ) {
         return resolve();
       }
@@ -48,7 +50,7 @@ function restore (key) {
 }
 
 
-function save ( key, data ) {
+function save ( key='defaultSessionKey', data ) {
   //data = { url : url, data};
   return encrypt( Object.assign({key},data) ).then( encrypted => new Promise( resolve =>
     fs.mkdir( storage_path.replace('$session',key), () =>
