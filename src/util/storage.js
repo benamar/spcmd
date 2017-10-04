@@ -36,7 +36,7 @@ module.exports = class Storage {
 
 function restore (key='defaultSessionKey') {
   let path = cookie_file_path.replace('$session',key);
-  console.log('storage_path',path);
+  //console.log('storage_path',path);
   return new Promise( resolve =>
     fs.readFile( path, 'utf8', ( err, data ) => {
       if ( err ) {
