@@ -28,6 +28,25 @@ const spreq = async ({ cookie }, params) => {
   return jsonResp;
 };
 
+var listInfoKeys=["internalversion",
+  "level",
+  "docstoreversion",
+  "Subject",
+  "modifiedby",
+  "modifiedby2",
+  "docstoretype",
+  "contentversion",
+  "previewexists",
+  "author",
+  "author2",
+  "thumbnailexists",
+  "timelastwritten",
+//  "contenttag",
+  "folderitemcount",
+  "parentid",
+  "timelastmodified",
+  "timecreated",]
+
 async function ls(context) {
   const { storedData, args, siteHostUrl, sharedDocuments, jsonFormat } = context;
   try {
@@ -48,8 +67,7 @@ async function ls(context) {
     //console.log('siteUrl',url);
     //console.log('urlFolder',urlFolder);
 
-    let infoList = [];
-    const dislayFiles = () => {
+    const dislayFiles = (infoList) => {
       infoList.length == 0
       && console.log('empty folder or does not exist')
       || console.log('\nlist for '.underline, ':', urlFolder, '\n');
@@ -66,42 +84,72 @@ async function ls(context) {
       )
     };
 
+    let infoList = [];
     let jsonResp = await spreq(storedData, { url: restUrl('Folders') });
     infoList.push(...jsonResp.d.results);
     let jsonResp2 = await spreq(storedData, { url: restUrl('Files') });
     infoList.push(...jsonResp2.d.results);
+    let formattedResult0 = ({ Name, ItemCount, TimeLastModified, Length, TimeCreated, CheckInComment, Title, Level,ListItemAllFields,Properties }) => (
+      {
+        Name,
+        TimeLastModified,
+        TimeCreated,
+        isDir: typeof ItemCount !== 'undefined',
+        ItemCount,
+        Length,
+        CheckInComment, Title, Level,
+        //ListItemAllFields_uri: ListItemAllFields["__deferred"]['uri'],
+        Properties_uri: Properties["__deferred"]['uri'],
+        properties:{}
+      });
+    let formattedResult=(a)=>{
+      //console.log('--------------------',a);
+      return formattedResult0(a);
+    };
     if (jsonFormat) {
-      console.log(JSON.stringify(
+      //console.log('jsonfile')
+      let jsn =
         {
           url,
           urlFolder,
-          folders: infoList.filter(({ItemCount})=>typeof ItemCount !== 'undefined').map(({ Name, ItemCount, TimeLastModified, Length, TimeCreated, CheckInComment, Title, Level }) => (
-            {
-              Name,
-              TimeLastModified,
-              TimeCreated,
-              isDir: typeof ItemCount != 'undefined',
-              ItemCount,
-              Length,
-              CheckInComment, Title, Level
-            })
-          ),
-          files: infoList.filter(({ItemCount})=>typeof ItemCount === 'undefined').map(({ Name, ItemCount, TimeLastModified, Length, TimeCreated, CheckInComment, Title, Level }) => (
-            {
-              Name,
-              TimeLastModified,
-              TimeCreated,
-              isDir: typeof ItemCount !== 'undefined',
-              ItemCount,
-              Length,
-              CheckInComment, Title, Level
-            })
-          )
+          folders: infoList.filter(({ItemCount})=>typeof ItemCount !== 'undefined')
+          .map(formattedResult),
+          files: infoList.filter(({ItemCount})=>typeof ItemCount === 'undefined')
+          .map(formattedResult)
+        };
+
+      //console.log(jsn.folders);
+       for(let fi in jsn.files){
+        let f = jsn.files[fi];
+        try {
+          //console.log('info for ',f.Properties_uri);
+          let infos = await spreq(storedData, { url: f.Properties_uri });
+          //console.log('###infos.d.__metadata#',infos.d.__metadata)
+          if (infos.d)
+            for (let m in infos.d) {
+              let k = m.replace('vti_x005f_', '');
+              if (listInfoKeys.indexOf(k)!=-1) {
+                let info = infos.d[m]
+                //console.log('#######', m, "#", info)
+                f.properties[k] = info;
+                if (["modifiedby","author"].indexOf(k)!=-1) {
+                   f.properties["_"+k+"_"] = f.properties[k];
+                   f.properties[k] = info.split('|').reverse()[0];
+                }
+              }
+            }
+          //console.log('==>',f.properties);
+          delete f.Properties_uri;
+        }catch(e){
+          f.properties['error']=e.message
+          ///console.error(e)
         }
-        ,null,2)
-      )
+      }
+      console.log(JSON.stringify(jsn,null,2));
+
     } else {
-      dislayFiles();
+      //console.log('console print')
+      dislayFiles(infoList);
     }
 
   } catch (e) {
@@ -111,3 +159,5 @@ async function ls(context) {
 }
 
 module.exports = ls;
+
+

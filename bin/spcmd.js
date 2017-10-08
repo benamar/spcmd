@@ -76,7 +76,7 @@ const credentials = (o, args) => {
     }
 
   }
-  if (siteHostUrl) {
+  if (siteHostUrl && siteHostUrl.startsWith) {
     if (siteHostUrl.startsWith('http')) {
       //override hostBaseUrl
       hostBaseUrl = origineBaseUrl(siteHostUrl);
