@@ -77,6 +77,7 @@ async function sites(context, storedData) {
 
   }catch(e){
     console.log('Error :',e.message);
+    process.exit(1);
   }
 
 }

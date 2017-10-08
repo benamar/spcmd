@@ -127,6 +127,7 @@ async function rm(context) {
 
   } catch (e) {
     console.error(e);
+    process.exit(1);
     return e;
   }
 

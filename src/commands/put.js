@@ -49,7 +49,8 @@ async function put(options, storedData) {
 
   } catch
     (e) {
-    console.error(e.message)
+    console.error(e.message);
+    process.exit(1);
   }
   ;
 

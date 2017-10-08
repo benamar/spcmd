@@ -4,6 +4,7 @@
 let Program;
 try {
   Program = require('commander');
+
 } catch (e) {
   console.log("module missing,please type");
   console.log("npm install");
@@ -112,10 +113,22 @@ const execCmd = (namedArgs, options) => {
   const opts = getOptions(namedArgs, options);
   let Command = require(`../src/commands/${options._name}`);
   //new Command(opts).run(opts).then(() => process.exit(0)).catch(    (reason) => console.error('error',reason)||process.exit(1)  );
+  try{
   return Storage.restore(global.creds.sessionKey).then(storedData => {
     opts.storedData = storedData && storedData.data;
-    Command(opts, storedData && storedData.data).then(() => process.exit(0)).catch((reason) => console.error('Error:', reason.message) || process.exit(1));
+    Command(opts, storedData && storedData.data).then((a) => {
+      //console.log('exit OK',a);
+      process.exit(0);
+    }).catch((reason) => {
+      console.error('Found Error:', reason.message);
+      process.exit(1)
+    });
   });
+  } catch (e) {
+    console.error("exit with error:",e.message);
+    process.exit(1)
+  }
+
 }
 
 Program
@@ -183,13 +196,14 @@ Program
     console.error(`\n*\nunknown command ${cmd}!\n*\n`);
     Program.help();
     console.error(`\n*\nunknown command ${cmd}!\n*\n`);
-
+    exit(1)
   });
 
 Program.parse(process.argv);
 if (process.argv.length < 3) {
   console.log('missing command');
   Program.help();
+  exit(1)
 }
 /*
  if ( ! cmd ) return;

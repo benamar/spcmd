@@ -43,6 +43,7 @@ function loginCheck(context) {
           } else {
             console.error('could not log in!');
             reject('auth error : could not log in');
+            throw new Error('auth error : could not log in!');
           }
         })
       );
@@ -65,7 +66,7 @@ async function login(context) {
       return storedData;
     }
   }
-  console.error('login check: not logged.'.red.bold);
+  //console.error('login check: not logged.'.red.bold);
 
   let _credentials = {
     hostBaseUrl: creds.hostBaseUrl || storedData && storedData.data.hostBaseUrl,
@@ -84,7 +85,7 @@ async function login(context) {
       return await Storage.restore(global.creds.sessionKey);
     } else {
       //console.error('Error occured'.red.bold,result);
-      return ('server authentication problem')
+      return (new Error('server authentication problem'))
     }
   }
 
@@ -99,7 +100,7 @@ async function login(context) {
     //credentials = await Storage.restore();
   } else {
     //console.error('Error occured'.red.bold,result);
-    return ('server authentication problem')
+    return (new Error('server authentication problem'))
   }
 
 }
@@ -121,7 +122,8 @@ function auth(credentials) {
     })
     .catch(function (e) {
       console.error('authentication error'.red, e);
-      new Error('getAuth failure', e)
+      process.exit(1)
+      //new Error('getAuth failure', e)
     });
   //return Promise.resolve('OK');
 }

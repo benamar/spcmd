@@ -153,8 +153,9 @@ async function ls(context) {
     }
 
   } catch (e) {
-    console.error(e.message)
-    return e;
+    console.error(e.message);
+    process.exit(1);
+    //throw new Error(e.message);
   }
 }
 
