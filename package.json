@@ -29,6 +29,7 @@
     "concat-stream": "^1.5.1",
     "deasync": "^0.1.9",
     "getmac": "^1.0.7",
+    "glob-fs": "^0.1.7",
     "istextorbinary": "^1.0.2",
     "minimist": "^1.2.0",
     "read": "^1.0.7",

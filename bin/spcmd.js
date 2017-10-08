@@ -123,6 +123,7 @@ const execCmd = (namedArgs, options) => {
       console.error('Found Error:', reason.message);
       process.exit(1)
     });
+
   });
   } catch (e) {
     console.error("exit with error:",e.message);
@@ -191,20 +192,28 @@ Program
   });
 
 Program
+  .command('cp <localFile> [remoteFolder] ')
+  .description(` put a file on sharepoint server`.green)
+  .action(function (localFile, remoteFolder, options) {
+    execCmd({ localFile, remoteFolder }, options);
+  });
+
+Program
   .command('*')
   .action(function (cmd) {
     console.error(`\n*\nunknown command ${cmd}!\n*\n`);
     Program.help();
     console.error(`\n*\nunknown command ${cmd}!\n*\n`);
-    exit(1)
+    process.exit(1)
   });
 
 Program.parse(process.argv);
 if (process.argv.length < 3) {
   console.log('missing command');
   Program.help();
-  exit(1)
+  process.exit(1)
 }
+console.log('process end')
 /*
  if ( ! cmd ) return;
 
